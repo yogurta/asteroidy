@@ -22,8 +22,7 @@ obrazky_meteoru = [
     nacti_obrazek('meteorGrey_tiny1.png'),
     nacti_obrazek('meteorGrey_tiny2.png')]
 
-
-
+obrazky = [obrazky_lodi] + obrazky_meteoru
 #obrazek_lod = pyglet.image.load('./ship.png')
 #obrazek_meteor = pyglet.image.load('./meteor.png')
 #obrazek_lod.anchor_x = obrazek_lod.width//2
@@ -31,7 +30,7 @@ obrazky_meteoru = [
 #obrazek_meteor.anchor_x = obrazek_meteor.width//2
 #obrazek_meteor.anchor_y = obrazek_meteor.height//2
 
-batch = pyglet.graphics.Batch()  # dávka
+batch = pyglet.graphics.Batch()  # mohu zavolat vsechny objekty najednou, huraa
 
 class SpaceObject:
     def __init__(self, x, y, rotation, obrazek):
@@ -64,6 +63,14 @@ class SpaceObject:
         self.sprite.y = self.y
         self.sprite.rotation = 90 - self.rotation
 
+    def delete(self):
+        self.sprite.delete() #nevykresli se v batch
+        objects.remove(self)
+
+    #def hit_by_spaceship(self):
+    #    if
+
+
 from random import randint #chci nahodne cislo nejake velikosti
 
 class Asteroid(SpaceObject):
@@ -72,6 +79,9 @@ class Asteroid(SpaceObject):
         self.speed_x = randint(-100, 100)
         self.speed_y = randint(-100, 100)
         self.rotation_speed = randint(-100, 100)
+
+    def hit_by_spaceship(self,spaceship): # spaceship je istance tridy, ne trida
+        spaceship.delete()
 
 from random import choice
 
@@ -102,6 +112,14 @@ class Spaceship(SpaceObject):
 
         super().tick(dt)
 
+        for item in objects: #misto item muzu napsat cokoliv
+            if item != self: # kdyz se nerovna self
+                if overlaps(self,item):
+                    item.hit_by_spaceship(self) # self je tady lod
+
+
+
+
 
 objects = []
 #for i  in range (13):  # pocet raketek
@@ -109,7 +127,7 @@ objects = []
 objects.append(Spaceship(window.width//2, window.height//2,0))
 
 for i in range(5):
-    objects.append(Asteroid(window.width//2, window.height//2,0))
+    objects.append(Asteroid(window.width//1, window.height//2,0))
 
 def tick(dt):
     for item in objects:
@@ -120,18 +138,39 @@ def draw():
       window.clear()
       for x_offset in (-window.width, 0, window.width):
           for y_offset in (-window.height, 0, window.height):
+              # Remember the current state
               gl.glPushMatrix()
+              # Move everything drawn from now on by (x_offset, y_offset, 0)
               gl.glTranslatef(x_offset, y_offset, 0)
+              # draw
               batch.draw()
               for item in objects:
                   draw_circle(item.x, item.y, item.radius)
+              #if item in SpaceObject.delete:
+              #   delete(objects)
               #   item.sprite.draw()
-              gl.glPopMatrix()
+              gl.glPopMatrix() # Restore remembered state (this cancels the glTranslatef)
 def draw2():
     window.clear()
     batch.draw()
     #for item in objects:
         #item.sprite.draw()
+
+def delete():
+    window.clear()
+    batch.draw()
+
+def distance(a,b,wrap_size):
+    result = abs(a - b)
+    if result > wrap_size / 2:
+        result = wrap_size - result
+    return result
+
+def overlaps(a, b):
+    distance_squared = (distance(a.x, b.x, window.width) ** 2 +
+                        distance(a.y, b.y, window.height) ** 2)
+    max_distance_squared = (a.radius + b.radius) ** 2
+    return distance_squared < max_distance_squared
 
 pressed_keys = set()
 from pyglet.window import key
@@ -146,7 +185,8 @@ def on_key_release(symbol, modifiers):
 window.push_handlers(  #nastaveni pro knihovnu,
         on_key_press=on_key_press,
         on_key_release=on_key_release,
-        on_draw=draw #knihovna vi, ze ma zavolat funkci, zaregirstuji, ze knihovna ma zavolat tu funkci
+        on_draw=draw, #knihovna vi, ze ma zavolat funkci, zaregirstuji, ze knihovna ma zavolat tu funkci
+        #on_delete=delete,
         )
 pyglet.clock.schedule_interval(tick, 0.02)
 
@@ -162,7 +202,5 @@ def draw_circle(x, y, radius):
         gl.glVertex2f(x+dx, y+dy)
         dx, dy = (dx*c - dy*s), (dy*c + dx*s)
     gl.glEnd()
-
-
 
 pyglet.app.run()
