@@ -1,3 +1,4 @@
 Co děláme o přestávce?
-Hrajeme si na hlodavceself.
-hihih
+Hrajeme si na hlodavce
+
+Hlody hlody hloy.. 
